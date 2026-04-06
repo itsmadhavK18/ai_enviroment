@@ -1,0 +1,11 @@
+name: "customer-support-ticket-triage"
+version: "1.0.0"
+description: "A real-world OpenEnv environment simulating customer support ticket triage. The AI agent must read, classify, assign priority, draft responses, and correctly resolve or escalate tickets."
+schema_version: "1.0"
+tasks:
+  easy:
+    description: "Simple single-ticket classification and resolution."
+  medium:
+    description: "Multi-ticket scenario with mixed priorities and clear policies."
+  hard:
+    description: "Complex 5-ticket scenario with strict out-of-policy handlers and precise escalation rules."
