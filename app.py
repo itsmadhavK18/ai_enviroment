@@ -1,10 +1,44 @@
 import os
-from typing import List
-
+from typing import List, Dict, Any, Optional
+from fastapi import FastAPI, Body
 import gradio as gr
 
+from env import CustomerSupportEnv
+from models import Action, Observation, Reward
 from inference import run_benchmark
 
+# Initialize FastAPI app
+app = FastAPI()
+
+# Single environment instance for the API
+# In a real production scenario, you might want session management,
+# but for evaluation benchmarks, a single instance is standard.
+env_instance = CustomerSupportEnv(task_name="easy")
+
+@app.post("/reset")
+async def reset(task_id: str = Body(default="easy", embed=True)):
+    """OpenEnv compliant Reset endpoint."""
+    global env_instance
+    env_instance = CustomerSupportEnv(task_name=task_id)
+    obs = env_instance.reset()
+    return obs.model_dump()
+
+@app.post("/step")
+async def step(action: Action):
+    """OpenEnv compliant Step endpoint."""
+    obs, reward, done, info = env_instance.step(action)
+    return {
+        "observation": obs.model_dump(),
+        "reward": reward.model_dump(),
+        "done": done,
+        "info": info
+    }
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "env": "customer-support-ticket-triage"}
+
+# --- Existing Gradio Evaluation Logic ---
 
 def evaluate(task_name: str, model_name: str, api_base_url: str, api_key: str) -> str:
     key = (api_key or "").strip() or os.getenv("OPENAI_API_KEY", "")
@@ -28,7 +62,6 @@ def evaluate(task_name: str, model_name: str, api_base_url: str, api_key: str) -
         return f"Run failed: {exc}"
 
     lines = ["# Evaluation Results", ""]
-    
     overall_scores = []
     for name in task_list:
         data = results.get(name, {})
@@ -49,7 +82,6 @@ def evaluate(task_name: str, model_name: str, api_base_url: str, api_key: str) -
         lines.insert(3, "---")
         
     return "\n".join(lines)
-
 
 with gr.Blocks(title="Customer Support Ticket Triage - OpenEnv") as demo:
     gr.Markdown(
@@ -80,6 +112,9 @@ with gr.Blocks(title="Customer Support Ticket Triage - OpenEnv") as demo:
         outputs=output,
     )
 
+# Mount Gradio into FastAPI
+app = gr.mount_gradio_app(app, demo, path="/")
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)

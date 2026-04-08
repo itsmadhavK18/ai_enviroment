@@ -8,5 +8,5 @@ COPY . /app
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run Gradio app for Hugging Face Space
-CMD ["python", "app.py"]
+# Run FastAPI + Gradio app for Hugging Face Space
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
