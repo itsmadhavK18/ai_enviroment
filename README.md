@@ -1,3 +1,13 @@
+---
+title: AI Enviroment
+emoji: 🌍
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # Customer Support Ticket Triage Environment
 
 A real-world OpenEnv-style environment for AI agent evaluation in customer support ticket triage. The agent must read, classify, assign priority, draft responses, and resolve or escalate tickets.
