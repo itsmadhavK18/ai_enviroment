@@ -18,7 +18,7 @@ def evaluate(task_name: str, model_name: str, api_base_url: str, api_key: str) -
         task_list = [task_name]
 
     try:
-        scores = run_benchmark(
+        results = run_benchmark(
             task_names=task_list,
             api_key=key,
             model_name=model_name.strip() or "gpt-4o",
@@ -27,13 +27,27 @@ def evaluate(task_name: str, model_name: str, api_base_url: str, api_key: str) -
     except Exception as exc:
         return f"Run failed: {exc}"
 
-    lines = ["Evaluation complete.", ""]
+    lines = ["# Evaluation Results", ""]
+    
+    overall_scores = []
     for name in task_list:
-        lines.append(f"{name}: {scores.get(name, 0.0):.2f}/1.00")
-    if len(task_list) > 1:
-        avg = sum(scores.values()) / len(scores)
+        data = results.get(name, {})
+        score = data.get("score", 0.0)
+        trace = data.get("trace", [])
+        overall_scores.append(score)
+        
+        lines.append(f"## Task: {name.upper()}")
+        lines.append(f"**Score: {score:.2f}/1.00**")
+        lines.append("### Execution Log:")
+        for log_entry in trace:
+            lines.append(f"- {log_entry}")
         lines.append("")
-        lines.append(f"average: {avg:.2f}/1.00")
+
+    if len(task_list) > 1:
+        avg = sum(overall_scores) / len(overall_scores)
+        lines.insert(2, f"**AVERAGE SCORE: {avg:.2f}/1.00**")
+        lines.insert(3, "---")
+        
     return "\n".join(lines)
 
 

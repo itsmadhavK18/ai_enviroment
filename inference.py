@@ -1,6 +1,6 @@
-import os
 import json
-from typing import Dict, List
+import re
+from typing import Dict, List, Tuple, Any
 from openai import OpenAI
 
 from env import CustomerSupportEnv
@@ -41,7 +41,8 @@ def build_user_prompt(step: int, obs) -> str:
         
     return prompt.strip()
 
-def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> float:
+def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> Tuple[float, List[str]]:
+    trace = []
     print(f"\n{'='*40}\nRunning Task: {task_name.upper()}\n{'='*40}")
     env = CustomerSupportEnv(task_name=task_name)
     obs = env.reset()
@@ -64,23 +65,31 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> fl
             )
             response_text = completion.choices[0].message.content.strip()
             
-            # Remove markdown if present
-            if response_text.startswith("```json"):
-                response_text = response_text[7:-3].strip()
-            elif response_text.startswith("```"):
-                response_text = response_text[3:-3].strip()
+            # Robust JSON Extraction
+            start = response_text.find('{')
+            end = response_text.rfind('}')
+            if start != -1 and end != -1:
+                clean_json = response_text[start:end+1]
+            else:
+                clean_json = response_text
 
-            action_data = json.loads(response_text)
+            action_data = json.loads(clean_json)
             action = Action(**action_data)
         except Exception as e:
+            msg = f"Step {step} Error: {e}"
             print(f"[{step}] Model error or invalid JSON: {e}")
             response_text = f"Error: {e}"
             action = Action(action_type="submit") # abort
+            trace.append(msg)
 
+        step_log = f"Step {step}: {action.action_type}"
+        if action.ticket_id: step_log += f" ({action.ticket_id})"
         print(f"[{step}] Model Action: {action.model_dump_json()}")
         history.append({"role": "assistant", "content": response_text})
         
         obs, reward, done, info = env.step(action)
+        step_log += f" -> {obs.last_action_status[:50]}... [Reward: {reward.value}]"
+        trace.append(step_log)
         print(f"      Reward: {reward.value} ({reward.reason}) | Done: {done}")
 
     # Grade
@@ -89,20 +98,21 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> fl
     final_tickets = [Ticket(**t) for t in final_state["tickets"]]
     score = env.task.grade(final_tickets)
     print(f"Task '{task_name}' completed. Final Grader Score: {score:.2f}")
-    return score
+    return score, trace
 
 def run_benchmark(
     task_names: List[str],
     api_key: str,
     model_name: str = MODEL_NAME,
     api_base_url: str = API_BASE_URL
-) -> Dict[str, float]:
-    """Runs selected tasks and returns grader scores."""
+) -> Dict[str, Any]:
+    """Runs selected tasks and returns grader scores and traces."""
     client = OpenAI(base_url=api_base_url, api_key=api_key)
-    scores: Dict[str, float] = {}
+    results: Dict[str, Any] = {}
     for task_name in task_names:
-        scores[task_name] = run_task(client, task_name, model_name=model_name)
-    return scores
+        score, trace = run_task(client, task_name, model_name=model_name)
+        results[task_name] = {"score": score, "trace": trace}
+    return results
 
 def main():
     if not API_KEY or API_KEY == "dummy-key":
