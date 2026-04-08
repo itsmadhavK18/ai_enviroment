@@ -73,6 +73,7 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> fl
             action = Action(**action_data)
         except Exception as e:
             print(f"[{step}] Model error or invalid JSON: {e}")
+            response_text = f"Error: {e}"
             action = Action(action_type="submit") # abort
 
         print(f"[{step}] Model Action: {action.model_dump_json()}")
