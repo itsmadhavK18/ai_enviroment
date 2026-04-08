@@ -115,6 +115,10 @@ with gr.Blocks(title="Customer Support Ticket Triage - OpenEnv") as demo:
 # Mount Gradio into FastAPI
 app = gr.mount_gradio_app(app, demo, path="/")
 
-if __name__ == "__main__":
+def main():
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    # We use the string import path to ensure uvicorn can find the app in the package
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
+
+if __name__ == "__main__":
+    main()
