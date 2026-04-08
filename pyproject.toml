@@ -21,4 +21,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["."]
+packages = ["server"]
+
+[project.scripts]
+server = "server.app:app"
