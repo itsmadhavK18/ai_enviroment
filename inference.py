@@ -49,6 +49,7 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> fl
     history = [{"role": "system", "content": SYSTEM_PROMPT.strip()}]
     
     for step in range(1, MAX_STEPS + 1):
+        response_text = ""
         if env.is_done:
             break
             
