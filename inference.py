@@ -1,6 +1,6 @@
 import os
 import json
-import textwrap
+from typing import Dict, List
 from openai import OpenAI
 
 from env import CustomerSupportEnv
@@ -41,7 +41,7 @@ def build_user_prompt(step: int, obs) -> str:
         
     return prompt.strip()
 
-def run_task(client, task_name: str) -> float:
+def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> float:
     print(f"\n{'='*40}\nRunning Task: {task_name.upper()}\n{'='*40}")
     env = CustomerSupportEnv(task_name=task_name)
     obs = env.reset()
@@ -57,7 +57,7 @@ def run_task(client, task_name: str) -> float:
         
         try:
             completion = client.chat.completions.create(
-                model=MODEL_NAME,
+                model=model_name,
                 messages=history,
                 temperature=0.0
             )
@@ -89,16 +89,29 @@ def run_task(client, task_name: str) -> float:
     print(f"Task '{task_name}' completed. Final Grader Score: {score:.2f}")
     return score
 
+def run_benchmark(
+    task_names: List[str],
+    api_key: str,
+    model_name: str = MODEL_NAME,
+    api_base_url: str = API_BASE_URL
+) -> Dict[str, float]:
+    """Runs selected tasks and returns grader scores."""
+    client = OpenAI(base_url=api_base_url, api_key=api_key)
+    scores: Dict[str, float] = {}
+    for task_name in task_names:
+        scores[task_name] = run_task(client, task_name, model_name=model_name)
+    return scores
+
 def main():
     if not API_KEY or API_KEY == "dummy-key":
         print("Warning: No API_KEY set. Ensure OPENAI_API_KEY is defined in real usage.")
         
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-    
-    scores = {}
-    for task_name in ["easy", "medium", "hard"]:
-        score = run_task(client, task_name)
-        scores[task_name] = score
+    scores = run_benchmark(
+        task_names=["easy", "medium", "hard"],
+        api_key=API_KEY,
+        model_name=MODEL_NAME,
+        api_base_url=API_BASE_URL
+    )
         
     print("\n\n" + "-"*30)
     print("FINAL SCORES")

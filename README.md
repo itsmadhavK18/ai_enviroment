@@ -1,26 +1,63 @@
 # Customer Support Ticket Triage Environment
 
-A complete, real-world OpenEnv environment for AI agents designed to simulate internal customer support queues. The agent must read, classify, assign priority, draft responses, and resolve or escalate tickets accurately.
+A real-world OpenEnv-style environment for AI agent evaluation in customer support ticket triage. The agent must read, classify, assign priority, draft responses, and resolve or escalate tickets.
 
-## 🏁 Environment Features
-- **Real-World Application**: Resolving tickets involves context-dependent policy application rather than toy tasks.
-- **Progressive Reward Shaping**: Rewards partial logic (+0.1 for reading, +0.1 for classifying/priority assignment correctly) and penalizes hallucinations/looping (-0.1).
-- **Difficulty Scaling**: Ships with deterministic Graders checking Easy, Medium, and Hard tasks mapping from 0.0 to 1.0 logic scores.
-- **Baseline included**: Runs `inference.py` leveraging OpenAI LLMs sequentially over the step loop.
+## Project Highlights
+- Realistic support queue behavior with policy-based decisions.
+- Reward shaping for incremental progress and penalties for invalid actions.
+- Deterministic graders for `easy`, `medium`, and `hard` tasks with scores from `0.00` to `1.00`.
+- Gradio app (`app.py`) for live Hugging Face Space demos.
+- Scripted benchmark runner (`inference.py`) for local/CLI evaluation.
 
-### Actions Space
-AI agents interface with JSON output based on the `Action` model defined in `models.py`.
-Possible actions: `read_ticket`, `classify_ticket`, `assign_priority`, `draft_response`, `resolve_ticket`, `escalate_ticket`, `submit`.
+## Action Schema
+The agent acts with the `Action` model in `models.py`.
 
-### Execution
-Provide `OPENAI_API_KEY` to run the baseline evaluation zero-shot loop.
+Supported actions:
+- `read_ticket`
+- `classify_ticket`
+- `assign_priority`
+- `draft_response`
+- `resolve_ticket`
+- `escalate_ticket`
+- `submit`
+
+## Run Locally
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Set API key:
 ```bash
 export OPENAI_API_KEY="sk-..."
+```
+
+3. Run CLI benchmark:
+```bash
 python inference.py
 ```
 
-### Hugging Face Deployment
-Since this environment is Dockerized and registered with `openenv.yaml`:
-1. Push this directory to a Hugging Face Space (Docker Template).
-2. Configure Secrets (`OPENAI_API_KEY`) within HF settings.
-3. OpenEnv framework tests via `openenv validate` automatically map to the `.yaml` definition.
+4. Run web demo:
+```bash
+python app.py
+```
+Then open `http://localhost:7860`.
+
+## Hugging Face Space Deployment (Docker)
+
+1. Create a new Hugging Face Space with **SDK = Docker**.
+2. Push this repository to your Space remote.
+3. In Space settings, add secret:
+   - `OPENAI_API_KEY`
+4. Wait for build to complete, then open the Space UI and run evaluations.
+
+This repo already includes:
+- `Dockerfile`
+- `requirements.txt`
+- `openenv.yaml`
+
+## Submission Checklist (Hackathon)
+- GitHub repo link: add here after push.
+- Hugging Face Space link: add here after deployment.
+- Space runs successfully and returns task scores.
