@@ -8,8 +8,8 @@ from env import CustomerSupportEnv
 from models import Action
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY", "dummy-key")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
+HF_TOKEN = os.getenv("HF_TOKEN")
 MAX_STEPS = 15
 
 SYSTEM_PROMPT = """
@@ -44,7 +44,7 @@ def build_user_prompt(step: int, obs) -> str:
 
 def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> Tuple[float, List[str]]:
     trace = []
-    print(f"\n{'='*40}\nRunning Task: {task_name.upper()}\n{'='*40}")
+    print(f"START: {task_name.upper()}")
     env = CustomerSupportEnv(task_name=task_name)
     obs = env.reset()
     
@@ -91,14 +91,14 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> Tu
         obs, reward, done, info = env.step(action)
         step_log += f" -> {obs.last_action_status[:50]}... [Reward: {reward.value}]"
         trace.append(step_log)
-        print(f"      Reward: {reward.value} ({reward.reason}) | Done: {done}")
+        print(f"STEP {step}: {action.action_type} -> Reward: {reward.value}")
 
     # Grade
     final_state = env.state()
     from models import Ticket
     final_tickets = [Ticket(**t) for t in final_state["tickets"]]
     score = env.task.grade(final_tickets)
-    print(f"Task '{task_name}' completed. Final Grader Score: {score:.2f}")
+    print(f"END: {task_name.upper()}")
     return score, trace
 
 def run_benchmark(
@@ -116,12 +116,12 @@ def run_benchmark(
     return results
 
 def main():
-    if not API_KEY or API_KEY == "dummy-key":
-        print("Warning: No API_KEY set. Ensure OPENAI_API_KEY is defined in real usage.")
+    if not HF_TOKEN:
+        print("Warning: No HF_TOKEN set. Ensure HF_TOKEN is defined in real usage.")
         
     scores = run_benchmark(
         task_names=["easy", "medium", "hard"],
-        api_key=API_KEY,
+        api_key=HF_TOKEN,
         model_name=MODEL_NAME,
         api_base_url=API_BASE_URL
     )
