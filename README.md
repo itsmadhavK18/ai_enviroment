@@ -67,7 +67,4 @@ This repo already includes:
 - `requirements.txt`
 - `openenv.yaml`
 
-## Submission Checklist (Hackathon)
-- GitHub repo link: add here after push.
-- Hugging Face Space link: add here after deployment.
-- Space runs successfully and returns task scores.
+
