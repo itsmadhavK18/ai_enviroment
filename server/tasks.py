@@ -1,6 +1,6 @@
 import json
 from typing import List, Dict, Any
-from models import Ticket
+from .models import Ticket
 
 # Initial ticket definitions for the different tasks
 
