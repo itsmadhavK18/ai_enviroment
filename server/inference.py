@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Any
 from openai import OpenAI
 
 from .env import CustomerSupportEnv
-from .models import Action
+from .models import Action, Ticket
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
@@ -64,7 +64,10 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> Tu
                 messages=history,
                 temperature=0.0
             )
-            response_text = completion.choices[0].message.content.strip()
+            if not completion.choices:
+                raise ValueError("No completion choices returned from model")
+            response_text = completion.choices[0].message.content or ""
+            response_text = response_text.strip()
             
             # Robust JSON Extraction
             start = response_text.find('{')
@@ -95,7 +98,6 @@ def run_task(client: OpenAI, task_name: str, model_name: str = MODEL_NAME) -> Tu
 
     # Grade
     final_state = env.state()
-    from models import Ticket
     final_tickets = [Ticket(**t) for t in final_state["tickets"]]
     score = env.task.grade(final_tickets)
     print(f"END: {task_name.upper()}")
@@ -119,18 +121,22 @@ def main():
     if not HF_TOKEN:
         print("Warning: No HF_TOKEN set. Ensure HF_TOKEN is defined in real usage.")
         
-    scores = run_benchmark(
-        task_names=["easy", "medium", "hard"],
-        api_key=HF_TOKEN,
-        model_name=MODEL_NAME,
-        api_base_url=API_BASE_URL
-    )
+    try:
+        scores = run_benchmark(
+            task_names=["easy", "medium", "hard"],
+            api_key=HF_TOKEN,
+            model_name=MODEL_NAME,
+            api_base_url=API_BASE_URL
+        )
+    except Exception as e:
+        print(f"Error during benchmark: {e}")
+        return
         
     print("\n\n" + "-"*30)
     print("FINAL SCORES")
     print("-" * 30)
     for t, s in scores.items():
-        print(f"{t.ljust(10)}: {s:.2f}/1.00")
+        print(f"{t.ljust(10)}: {s['score']:.2f}/1.00")
         
 if __name__ == "__main__":
     main()
